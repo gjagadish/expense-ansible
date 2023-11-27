@@ -1,0 +1,46 @@
+---
+
+- name: Backend Setup
+  hosts: all
+  become: true
+  tasks:
+    - name: Install NodeJS
+      ansible.builtin.shell: curl -sL https://rpm.nodesource.com/setup_lts.x | bash
+    - name: Install NodeJs
+      ansible.builtin.dnf:
+        name: nodejs
+    - name: Copy Backend Service file
+      ansible.builtin.copy:
+        src: backend.service
+        dest: /etc/systemd/system/backend.service
+    - name: Add App user
+      ansible.builtin.user:
+          name: expense
+    - name: Cleanup old content
+      ansible.builtin.file:
+          path: /app
+          state: absent
+    - name: Create App dir
+      ansible.builtin.file:
+        path: /app
+        state: directory
+    - name: Downloading and Extracting Frontend code
+      ansible.builtin.unarchive:
+        src: https://expense-artifacts.s3.amazonaws.com/backend.zip
+        dest: /app
+        remote_src: true
+    - name: Install node dependencies
+      ansible.builtin.shell: npm install
+      args:
+         chdir: /app
+    - name: Install mysql
+      ansible.builtin.dnf:
+        name: mysql
+    - name: Load schema
+      ansible.builtin.shell: mysql -h mysql.jaga-devops.online -uroot -p$mysql_root_password < /app/schema/backend.sql
+    - name: Start Backend Service
+      ansible.builtin.systemd:
+        name: backend
+        state: restarted
+        enabled: true
+        daemon-reload: true

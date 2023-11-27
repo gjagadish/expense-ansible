@@ -1,0 +1,30 @@
+- name: Frontend Setup
+  hosts: all
+  tasks:
+    - name: Install nginx
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+    - name: Placing Expense Config File in Nginx
+      ansible.builtin.copy:
+        src: expense.conf
+        dest: /etc/nginx/default.d/expense.conf
+    - name: Removing Old Nginx content
+      ansible.builtin.file:
+        path: /usr/share/nginx/html
+        state: directory
+    #- name: Download frontend Code
+    #  ansible.builtin.get_url:
+    #    url: https://expense-artifacts.s3.amazonaws.com/frontend.zip
+    #    dest: /tmp/frontend.zip
+    - name: Downloading and Extracting Frontend code
+      ansible.builtin.unarchive:
+        src: https://expense-artifacts.s3.amazonaws.com/frontend.zip
+        dest: /usr/share/nginx/html
+        remote_src: true
+
+    - name: Starting Nginx Service
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: true
